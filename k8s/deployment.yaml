@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-to-zulip
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: app
+        image: sandhose/alertmanager-to-zulip
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        ports:
+        - containerPort: 3000
+          name: http
+        envFrom:
+        - secretRef:
+            name: alertmanager-to-zulip
+        - configMapRef:
+            name: alertmanager-to-zulip
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels: {}
+              topologyKey: kubernetes.io/hostname
