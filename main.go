@@ -111,6 +111,7 @@ func main() {
 		if err := decoder.Decode(msg); err != nil {
 			alertsErrors.WithLabelValues("invalid input").Inc()
 			http.Error(w, err.Error(), 400)
+			log.Println("Invalid input", err)
 			return
 		}
 
@@ -118,6 +119,7 @@ func main() {
 		if err != nil {
 			alertsErrors.WithLabelValues("template error").Inc()
 			http.Error(w, err.Error(), 500)
+			log.Println("Template error", err)
 			return
 		}
 
@@ -133,6 +135,7 @@ func main() {
 		if err != nil {
 			alertsErrors.WithLabelValues("request creation error").Inc()
 			http.Error(w, err.Error(), 500)
+			log.Println("Request creation error", err)
 			return
 		}
 
@@ -143,6 +146,7 @@ func main() {
 		if err != nil {
 			alertsErrors.WithLabelValues("request error").Inc()
 			http.Error(w, err.Error(), 500)
+			log.Println("Request error", err)
 			return
 		}
 
