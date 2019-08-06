@@ -83,6 +83,13 @@ func formatAlerts(msg *alertmanagerWebhook.Message) (string, string, error) {
 	return topic.String(), message.String(), nil
 }
 
+func logRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		handler.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	flag.Int("port", 3000, "The port on which to serve the app")
 	flag.String("url", "https://team.zulipchat.com", "URL to your Zulip instance")
@@ -159,5 +166,5 @@ func main() {
 	port := viper.GetInt("port")
 	listen := fmt.Sprintf(":%d", port)
 	log.Println("Starting server", listen)
-	http.ListenAndServe(listen, nil)
+	http.ListenAndServe(listen, logRequest(http.DefaultServeMux))
 }
