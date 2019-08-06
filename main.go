@@ -12,9 +12,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/spf13/viper"
-	flag "github.com/spf13/pflag"
 	alertmanagerWebhook "github.com/prometheus/alertmanager/notify/webhook"
+	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -49,18 +49,18 @@ var (
 )
 
 var (
-	topicTpl    *template.Template = template.New("topic").Funcs(template.FuncMap(DefaultFuncs))
-	messageTpl  *template.Template = template.New("message").Funcs(template.FuncMap(DefaultFuncs))
+	topicTpl   *template.Template = template.New("topic").Funcs(template.FuncMap(DefaultFuncs))
+	messageTpl *template.Template = template.New("message").Funcs(template.FuncMap(DefaultFuncs))
 )
 
 func initTpl() {
 	var err error
-	topicTpl, err = topicTpl.Parse("{{ .GroupLabels.alertname }}")
+	topicTpl, err = topicTpl.Parse(viper.GetString("templates.topic"))
 	if err != nil {
 		panic(err)
 	}
 
-	messageTpl, err = messageTpl.Parse("[{{ .Status | toUpper }}{{ if eq .Status \"firing\" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.SortedPairs.Values | join \" \" }} {{ if gt (len .CommonLabels) (len .GroupLabels) }}({{ with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join \" \" }}{{ end }}){{ end }}")
+	messageTpl, err = messageTpl.Parse(viper.GetString("templates.message"))
 
 	if err != nil {
 		panic(err)
@@ -89,8 +89,13 @@ func main() {
 	flag.String("username", "zulip@example.com", "The username to use when connecting to Zulip")
 	flag.String("password", "hunter2", "The password to use when connecting to Zulip")
 	flag.String("stream", "alerts", "The stream where to post the alerts")
+	flag.String("templates.topic", "{{ .GroupLabels.alertname }}", "Go template for the topic")
+	flag.String("templates.message", "[{{ .Status | toUpper }}{{ if eq .Status \"firing\" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.SortedPairs.Values | join \" \" }} {{ if gt (len .CommonLabels) (len .GroupLabels) }}({{ with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join \" \" }}{{ end }}){{ end }}", "Go template for the message")
 	flag.Parse()
 	viper.BindPFlags(flag.CommandLine)
+
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
 	initTpl()
@@ -144,7 +149,7 @@ func main() {
 		alertsSent.WithLabelValues(topic).Inc()
 
 		w.Header().Set("Content-Type", "text/plain")
-                io.WriteString(w, "ok")
+		io.WriteString(w, "ok")
 	})
 
 	port := viper.GetInt("port")
